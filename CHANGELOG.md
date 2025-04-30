@@ -3,7 +3,6 @@
 ## [0.0.1] 2022-11-07
 - Initial
 
-
 ## [0.0.2] 2022-11-07
 - Fixed issue where ~/.ck-sso-cli/config.json file is not created before configuration
 ## [0.1.0] 2022-11-07
@@ -26,3 +25,6 @@
 
 ## [2.0.0] 2024-02-28
 - Feature: Added support for Windows
+
+## [2.0.1] 2025-04-30
+- Bug fix: Writing region to the profile in ~/.aws/config

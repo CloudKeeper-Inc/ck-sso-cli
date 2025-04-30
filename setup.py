@@ -11,8 +11,8 @@ setup(
     packages=find_packages(),
     license='Apache License 2.0',
     author='Aditya Ajay',
-    author_email='aditya.ajay@tothenew.com',
-    url='https://www.cloudkeeper.ai/',
+    author_email='aditya.ajay@cloudkeeper.com',
+    url='https://www.cloudkeeper.com/',
     entry_points={
         'console_scripts': [
             'ck-sso-cli=ckssocli.ck_sso_cli:main',
