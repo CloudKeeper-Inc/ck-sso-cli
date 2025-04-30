@@ -78,6 +78,7 @@ output = {config[profile]['output']}
 
 [profile {profile}]
 output = json
+region = {config[profile]['region']}
             '''
             aws_config_write.write(f'{aws_config_contents}\n')
             aws_config_write.write(f'{existing_data}\n')
@@ -100,6 +101,7 @@ output = {config[profile]['output']}
 
 [{profile}]
 output = json
+region = {config[profile]['region']}
             '''
             aws_config_write.write(f'{aws_config_contents}\n')
             aws_config_write.write(f'{existing_data}\n')
