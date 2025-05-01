@@ -28,3 +28,9 @@
 
 ## [2.0.1] 2025-04-30
 - Bug fix: Writing region to the profile in ~/.aws/config
+
+## [2.0.2] 2025-05-01
+- Bug fix: PATH installation issues resolved
+
+## [2.0.3] 2025-05-01
+- Bug fix: Resolved CLI entrypoint
