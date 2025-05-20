@@ -2,8 +2,8 @@ import sys
 import subprocess
 import json
 import boto3
-import os 
-import time
+import os
+import configparser 
 
 def get_home_directory():
     if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
@@ -39,7 +39,6 @@ def login_utility():
     with open(f'{directory}/.ck-sso-cli/config.json', 'r') as config_file_read:
         try:
             config = json.load(config_file_read)
-            check = config[profile]
         except:
             if profile!='default':
                 print(f'Profile {profile} not found. To configure the profile, run ck-sso-cli configure --profile {profile}')
@@ -52,61 +51,44 @@ def login_utility():
 
 
 
-def update_aws_config(config,profile,directory):
-    try:
-        aws_config_read = open(f'{directory}/.aws/config','r')
-        aws_config_read.close()
-    except:
-        os.system(f'mkdir {directory}/.aws > file.tmp')
-        os.system(f'touch {directory}/.aws/config')
-        os.system(f'touch {directory}/.aws/credentials')
-    if profile != 'default':
-        existing_data = ''
-        with open(f'{directory}/.aws/config','r') as aws_config_read:
-                  existing_data = aws_config_read.read()
-                  if profile in existing_data:
-                      ts=time.time()
-                      existing_data = existing_data.replace(f'{profile}',f'DELETE-{ts}')
-        with open(f'{directory}/.aws/config','w') as aws_config_write:
-            aws_config_contents = f'''[profile {profile}-sso]
-sso_start_url = {config[profile]['sso_start_url']}
-sso_region = {config[profile]['sso_region']}
-sso_account_id = {config[profile]['sso_account_id']}
-sso_role_name = {config[profile]['sso_role_name']}
-region = {config[profile]['region']}
-output = {config[profile]['output']}
+def update_aws_config(config, profile, directory):
+    config_path = os.path.join(directory, '.aws', 'config')
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
 
-[profile {profile}]
-output = json
-region = {config[profile]['region']}
-            '''
-            aws_config_write.write(f'{aws_config_contents}\n')
-            aws_config_write.write(f'{existing_data}\n')
-    else:
-        existing_data = ''
-        with open(f'{directory}/.aws/config','r') as aws_config_read:
-                  existing_data = aws_config_read.read()
-                  if profile in existing_data:
-                      ts=time.time()
-                      existing_data = existing_data.replace(f'{profile}',f'DELETE-{ts}')
-                    
-        with open(f'{directory}/.aws/config','w') as aws_config_write:
-            aws_config_contents = f'''[profile {profile}-sso]
-sso_start_url = {config[profile]['sso_start_url']}
-sso_region = {config[profile]['sso_region']}
-sso_account_id = {config[profile]['sso_account_id']}
-sso_role_name = {config[profile]['sso_role_name']}
-region = {config[profile]['region']}
-output = {config[profile]['output']}
+    parser = configparser.ConfigParser()
+    parser.read(config_path)
 
-[{profile}]
-output = json
-region = {config[profile]['region']}
-            '''
-            aws_config_write.write(f'{aws_config_contents}\n')
-            aws_config_write.write(f'{existing_data}\n')
-        
+    profile_key = f'profile {profile}' if profile != 'default' else profile
+    sso_key = f'profile {profile}-sso'
 
+    new_profile_data = {
+        'region': config[profile]['region'],
+        'output': 'json'
+    }
+
+    if parser.has_section(profile_key):
+        for k, v in parser[profile_key].items():
+            if k not in new_profile_data:
+                new_profile_data[k] = v
+        parser.remove_section(profile_key)
+
+    new_sso_data = {
+        'sso_start_url': config[profile]['sso_start_url'],
+        'sso_region': config[profile]['sso_region'],
+        'sso_account_id': config[profile]['sso_account_id'],
+        'sso_role_name': config[profile]['sso_role_name'],
+        'region': config[profile]['region'],
+        'output': config[profile]['output']
+    }
+
+    if parser.has_section(sso_key):
+        parser.remove_section(sso_key)
+
+    parser[profile_key] = new_profile_data
+    parser[sso_key] = new_sso_data
+
+    with open(config_path, 'w') as configfile:
+        parser.write(configfile)      
 def get_sso_creds(profile):
     try:
         boto3.setup_default_session(profile_name=f'{profile}-sso')
@@ -115,28 +97,41 @@ def get_sso_creds(profile):
     except:
         subprocess.run(['aws','sso','login','--profile',f'{profile}-sso'])
 
-
-def assume_role_using_sts(config,profile,directory):
+def assume_role_using_sts(config, profile, directory):
     boto3.setup_default_session(profile_name=f'{profile}-sso')
     client = boto3.client('sts')
-    response = client.assume_role(RoleArn=config[profile]['destination_role_arn'],RoleSessionName=config[profile]['email_id'])
+    response = client.assume_role(
+        RoleArn=config[profile]['destination_role_arn'],
+        RoleSessionName=config[profile]['email_id']
+    )
+
     aki = response['Credentials']['AccessKeyId']
     sak = response['Credentials']['SecretAccessKey']
     st = response['Credentials']['SessionToken']
 
-    existing_data = ''
-    with open(f'{directory}/.aws/credentials','r') as aws_credentials_read:
-        existing_data = aws_credentials_read.read()
-        if f'[{profile}]' in existing_data:
-            ts=time.time()
-            existing_data = existing_data.replace(f'{profile}',f'DELETE-{ts}')
+    credentials_path = os.path.join(directory, '.aws', 'credentials')
+    os.makedirs(os.path.dirname(credentials_path), exist_ok=True)
 
-    with open(f'{directory}/.aws/credentials','w') as aws_credentials_write:
-        aws_credentials_content = f'''[{profile}]
-aws_access_key_id = {aki}
-aws_secret_access_key = {sak}
-aws_session_token = {st}
-        '''
-        aws_credentials_write.write(f'{aws_credentials_content}\n')
-        aws_credentials_write.write(f'{existing_data}\n')
+    parser = configparser.ConfigParser()
+    parser.read(credentials_path)
+
+    new_creds = {
+        'aws_access_key_id': aki,
+        'aws_secret_access_key': sak,
+        'aws_session_token': st
+    }
+
+
+    if parser.has_section(profile):
+        for k, v in parser[profile].items():
+            if k not in new_creds:
+                new_creds[k] = v
+        parser.remove_section(profile)
+
+
+    parser[profile] = new_creds
+
+    with open(credentials_path, 'w') as credfile:
+        parser.write(credfile)
+
     print("Credentials written in ~/.aws/credentials file and are ready for use.")

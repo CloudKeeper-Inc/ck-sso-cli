@@ -34,3 +34,6 @@
 
 ## [2.0.3] 2025-05-01
 - Bug fix: Resolved CLI entrypoint
+
+## [2.0.4] 2025-05-18
+- [Fix for Issue #1 - Removed DELETE-* subsequent entries, and started retaining custom parameters in the .aws/config file](https://github.com/CloudKeeper-Inc/ck-sso-cli/issues/1)

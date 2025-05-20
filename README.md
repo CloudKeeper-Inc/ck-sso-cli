@@ -12,6 +12,9 @@ This project is written for **Python 3.6 and above**.
 
 *Older versions of Python are not supported.*
 ## Prerequisites
+
+### Ensure that the .aws/ directory exists in your home folder
+
 ### AWS IAM Identity Center (SSO) Prerequisites
 - Create a Permission Set in the SSO account which has the permission to perform sts:AssumeRole on any resource (*)
 - Go to IAM Roles in the SSO account and retrieve the Role ARN of the newly created Permission Set
